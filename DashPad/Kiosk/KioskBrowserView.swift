@@ -150,13 +150,6 @@ extension WebViewRepresentable {
             self.webController = webController
         }
 
-        /// WebKitErrorDomain codes (WebKitErrors.h) that mean a load was abandoned, not that it failed.
-        private static let ignoredWebKitErrors: Set<Int> = [
-            101, // CannotShowURL: a link to a scheme the WebView can't open (tel:, mailto:, app links)
-            102, // FrameLoadInterruptedByPolicyChange: cancelled by decidePolicyFor (domain allowlist)
-            204, // PlugInWillHandleLoad: media handed off to the system player
-        ]
-
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction
@@ -172,7 +165,7 @@ extension WebViewRepresentable {
                 // Blocking the dashboard itself would leave a blank screen, and retrying can't fix it.
                 cancelRetry()
                 webController.loadFailure = LoadFailure(
-                    url: Self.displayString(for: url),
+                    url: LoadFailure.displayString(for: url),
                     reason: "This domain isn't in Settings → Allowed Domains.",
                     willRetry: false
                 )
@@ -204,10 +197,9 @@ extension WebViewRepresentable {
         }
 
         private func handleFailure(_ error: Error, navigation: WKNavigation?, provisional: Bool) {
+            // Superseded by a newer navigation or handed off: not a failure.
+            if LoadFailure.isAbandonedLoad(error) { return }
             let nsError = error as NSError
-            // Superseded by a newer navigation: not a failure.
-            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled { return }
-            if nsError.domain == "WebKitErrorDomain" && Self.ignoredWebKitErrors.contains(nsError.code) { return }
 
             // A link that fails before committing leaves the current page loaded and usable;
             // covering it with the error and then navigating home would take away a working dashboard.
@@ -215,7 +207,7 @@ extension WebViewRepresentable {
 
             let failingURL = nsError.userInfo[NSURLErrorFailingURLErrorKey] as? URL ?? URL(string: settings.homeURL)
             webController.loadFailure = LoadFailure(
-                url: failingURL.map(Self.displayString) ?? "",
+                url: failingURL.map(LoadFailure.displayString) ?? "",
                 reason: nsError.localizedDescription,
                 willRetry: true
             )
@@ -236,18 +228,6 @@ extension WebViewRepresentable {
         private func cancelRetry() {
             retryTimer?.invalidate()
             retryTimer = nil
-        }
-
-        /// The URL without credentials, query or fragment: the error screen is readable by anyone in the room.
-        private static func displayString(for url: URL) -> String {
-            guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-                return url.host ?? ""
-            }
-            components.user = nil
-            components.password = nil
-            components.query = nil
-            components.fragment = nil
-            return components.string ?? url.host ?? ""
         }
     }
 }

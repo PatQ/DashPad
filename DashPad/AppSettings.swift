@@ -173,6 +173,23 @@ enum IdleScreenType: String, CaseIterable {
     }
 }
 
+extension AppSettings {
+    /// The URL the idle screen loads in Custom URL mode, or nil when `idleCustomURL` isn't loadable
+    /// and the clock is shown instead.
+    var idleWebURL: URL? { Self.webURL(from: idleCustomURL) }
+
+    /// Parses user-entered text as a page DashPad can load: http or https, with a host.
+    /// Without the host check, `"http://"` or `"ha.local"` parse fine and load a blank page.
+    static func webURL(from text: String) -> URL? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://"),
+              let url = URL(string: trimmed),
+              let host = url.host, !host.isEmpty
+        else { return nil }
+        return url
+    }
+}
+
 enum DetectionMode: String, CaseIterable {
     case body, face
 

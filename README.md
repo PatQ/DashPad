@@ -198,7 +198,7 @@ Three mutually exclusive modes:
 | ---------- | -------------------------------------------------------------------------- |
 | Clock      | Full-screen clock. Choose Digital or Analog style.                         |
 | Blank      | Pure black screen. Pair with a low idle brightness to minimise power draw. |
-| Custom URL | Loads a URL in the WebView, useful for a dedicated screensaver dashboard.  |
+| Custom URL | Loads a second URL while idle: a Home Assistant view built as a clock, weather or calendar screen, a photo frame, or any other page. The page is display-only; tapping it wakes the dashboard. If it can't load, DashPad says so and retries every 10 seconds. |
 
 
 

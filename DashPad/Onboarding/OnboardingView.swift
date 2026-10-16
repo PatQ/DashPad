@@ -263,12 +263,8 @@ struct OnboardingView: View {
     /// "http://" passes a `hasPrefix` check, is stored happily, and then fails to load with
     /// nothing to explain why - so a host is required too.
     private func normalizedURL(from text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
-        guard trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://"),
-              let url = URL(string: trimmed),
-              let host = url.host, !host.isEmpty
-        else { return nil }
-        return trimmed
+        guard AppSettings.webURL(from: text) != nil else { return nil }
+        return text.trimmingCharacters(in: .whitespaces)
     }
 
     private static let urlErrorMessage =

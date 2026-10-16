@@ -71,7 +71,8 @@ DashPadApp
     ├── IdleView                  (when displayState == .idle)
     │   ├── ClockView             (idleScreenType == .clock)
     │   ├── Color.black           (idleScreenType == .blank)
-    │   └── IdleWebView           (idleScreenType == .customURL)
+    │   └── IdleWebPage           (idleScreenType == .customURL, display-only)
+    │       └── IdleWebView       (UIViewRepresentable wrapping its own WKWebView)
     ├── [corner tap target]       (invisible, always present)
     └── PINEntryOverlay           (when showingPINEntry == true, zIndex: 10)
 
@@ -171,15 +172,26 @@ Every load of the home URL goes through `WebViewController.goHome(url:)`, which 
 
 `webView(_:didFailProvisionalNavigation:)` and `webView(_:didFail:)` both go through `handleFailure(_:navigation:provisional:)`, which works through these rules in order:
 
-- **Abandoned, not failed.** `NSURLErrorCancelled` (superseded by a newer navigation) and WebKit errors 101 (a link to a scheme the WebView can't open, such as `mailto:`), 102 (cancelled by the allowlist policy) and 204 (media handed to the system player) are ignored.
+- **Abandoned, not failed.** `LoadFailure.isAbandonedLoad(_:)`: `NSURLErrorCancelled` (superseded by a newer navigation) and WebKit errors 101 (a link to a scheme the WebView can't open, such as `mailto:`), 102 (cancelled by the allowlist policy) and 204 (media handed to the system player) are ignored.
 - **Failed link, page still showing.** A provisional failure that isn't the home navigation, while a page is already loaded, is ignored too, so the working dashboard stays usable.
-- **Anything else.** Sets `WebViewController.loadFailure`, which `KioskBrowserView` renders as a "Can't reach dashboard" placeholder, and schedules a reload of the home URL after `WebViewController.retryInterval` (10 seconds). The URL on that screen has its credentials, query and fragment removed, because the screen is visible to anyone in the room.
+- **Anything else.** Sets `WebViewController.loadFailure`, which `KioskBrowserView` renders as a "Can't reach dashboard" placeholder, and schedules a reload of the home URL after `WebViewController.retryInterval` (10 seconds). The URL on that screen goes through `LoadFailure.displayString(for:)`, which removes credentials, query and fragment, because the screen is visible to anyone in the room.
 
 `webView(_:didFinish:)` clears `loadFailure` and cancels any pending retry, so a successful navigation is never followed by a jump back to the home URL.
 
 If the allowlist blocks the home URL's own host, `decidePolicyFor` sets a `loadFailure` with `willRetry: false`, since retrying can't help. `KioskBrowserView` reloads the dashboard when Allowed Domains changes.
 
 If iOS terminates the web content process (`webViewWebContentProcessDidTerminate`), the dashboard is reloaded from the home URL.
+
+### Idle screen web page
+
+Custom URL mode uses its own WKWebView (`IdleWebPage` / `IdleWebView` in `IdleView.swift`), separate from the dashboard's:
+
+- **Display-only.** `.allowsHitTesting(false)` means the page never receives touches. Every tap reaches `ContentView`'s idle tap handler and wakes the dashboard, and nobody can follow a link away from the idle URL. For that reason the domain allowlist is not applied to it.
+- **Short-lived.** It is created each time the display goes idle and torn down on wake, so each idle period starts fresh from `idleCustomURL`. It shares the default website data store with the dashboard, so a Home Assistant session signed in on the dashboard also works on the idle page.
+- **Autoplay.** Inline media plays without a user gesture, for slideshows and camera feeds.
+- **Failures.** Uses the same `LoadFailure` helpers as the dashboard: abandoned loads are ignored, anything else shows "Can't load idle screen" and retries the idle URL after `WebViewController.retryInterval`. A terminated web content process reloads the idle URL.
+
+`AppSettings.idleWebURL` is nil unless `idleCustomURL` parses through `AppSettings.webURL(from:)` (http or https, with a host). In that case `IdleView` shows the clock, and Settings shows a warning under the URL field. Onboarding uses the same check.
 
 ### App Transport Security
 

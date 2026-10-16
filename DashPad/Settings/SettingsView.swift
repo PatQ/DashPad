@@ -638,7 +638,14 @@ struct SettingsView: View {
                     }
                 }
             } footer: {
-                Text("Loads a web page when idle - useful for dashboards, photo frames, or other always-on displays.")
+                VStack(alignment: .leading, spacing: 6) {
+                    if settings.idleScreenType == .customURL, settings.idleWebURL == nil {
+                        Label("Enter a full URL starting with http:// or https://. Until then the clock is shown.",
+                              systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    Text("Loads a web page when idle - a Home Assistant view with a clock, weather or calendar, a photo frame, or any other always-on display. The page is display-only: tapping it wakes the dashboard.")
+                }
             }
 
             Section {

@@ -11,7 +11,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Settings sidebar has a Rate DashPad row that opens the App Store's write-a-review page. Nothing
   happens unless the user taps it; the app never prompts for a rating on its own.
 
+### Changed
+- The Custom URL idle screen is now display-only: taps always wake the dashboard instead of
+  going to the page, and the page can't be used to browse away from the idle URL. Videos and
+  slideshows on it autoplay.
+
 ### Fixed
+- A Custom URL idle screen that fails to load now shows "Can't load idle screen" and retries every
+  10 seconds, instead of a black screen that stayed black until the next idle period. It also
+  reloads if iOS terminates its web content process, and no longer flashes white while loading.
+- Settings → Idle Screen warns when the Custom URL isn't a full http:// or https:// URL. Before,
+  the clock was shown with no explanation.
 - Dashboards served over plain HTTP on a hostname that isn't `.local`, an IP address or a single
   label (e.g. `http://ha.home.lan:8123`) showed a blank screen. App Transport Security blocked
   them; `NSAllowsArbitraryLoadsInWebContent` now allows plain HTTP in the WebView only

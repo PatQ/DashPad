@@ -22,8 +22,8 @@ struct IdleView: View {
                 ClockView()
 
             case .customURL:
-                if let url = URL(string: settings.idleCustomURL), !settings.idleCustomURL.isEmpty {
-                    IdleWebView(url: url)
+                if let url = settings.idleWebURL {
+                    IdleWebPage(url: url)
                 } else {
                     ClockView()
                 }
@@ -33,20 +33,123 @@ struct IdleView: View {
     }
 }
 
-// MARK: - Idle web view (for Custom URL mode)
+// MARK: - Idle web page (for Custom URL mode)
+
+/// A display-only page: it never takes touches, so any tap reaches ContentView and wakes the
+/// dashboard, and nobody can browse away from the idle URL. It is created fresh each time the
+/// screen goes idle, so the page always starts from the configured URL.
+private struct IdleWebPage: View {
+    let url: URL
+    @State private var failure: LoadFailure?
+
+    var body: some View {
+        ZStack {
+            IdleWebView(url: url, failure: $failure)
+            if let failure {
+                EmptyStatePlaceholder(
+                    title: "Can't load idle screen",
+                    systemImage: "wifi.exclamationmark",
+                    description: "\(failure.url)\n\n\(failure.reason)\n\n"
+                        + "DashPad will try again in \(Int(WebViewController.retryInterval)) seconds."
+                )
+                .background(Color.black.ignoresSafeArea())
+                .environment(\.colorScheme, .dark)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
 
 private struct IdleWebView: UIViewRepresentable {
     let url: URL
+    @Binding var failure: LoadFailure?
 
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        let config = WKWebViewConfiguration()
+        // Slideshows and camera feeds have to start on their own: nobody taps an idle screen to play.
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator
         webView.scrollView.bounces = false
         webView.backgroundColor = .black
-        webView.load(URLRequest(url: url))
+        // Not opaque, so the black behind it shows until the page paints instead of a white flash.
+        webView.isOpaque = false
+        context.coordinator.load(url, in: webView)
         return webView
     }
 
-    func updateUIView(_ uiView: WKWebView, context: Context) {}
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        context.coordinator.failure = $failure
+        if context.coordinator.url != url {
+            context.coordinator.load(url, in: webView)
+        }
+    }
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        coordinator.cancelRetry()
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(failure: $failure) }
+
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        var failure: Binding<LoadFailure?>
+        private(set) var url: URL?
+        private var retryTimer: Timer?
+
+        init(failure: Binding<LoadFailure?>) {
+            self.failure = failure
+        }
+
+        func load(_ url: URL, in webView: WKWebView) {
+            cancelRetry()
+            self.url = url
+            webView.load(URLRequest(url: url))
+        }
+
+        func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
+            cancelRetry()
+            failure.wrappedValue = nil
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError error: Error) {
+            handleFailure(error, in: webView)
+        }
+
+        func webView(_ webView: WKWebView, didFail _: WKNavigation!, withError error: Error) {
+            handleFailure(error, in: webView)
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            // The idle page can stay up all night; if iOS reclaims its process, start it again.
+            guard let url else { return }
+            load(url, in: webView)
+        }
+
+        func cancelRetry() {
+            retryTimer?.invalidate()
+            retryTimer = nil
+        }
+
+        private func handleFailure(_ error: Error, in webView: WKWebView) {
+            guard !LoadFailure.isAbandonedLoad(error), let url else { return }
+            let failingURL = (error as NSError).userInfo[NSURLErrorFailingURLErrorKey] as? URL ?? url
+            failure.wrappedValue = LoadFailure(
+                url: LoadFailure.displayString(for: failingURL),
+                reason: error.localizedDescription,
+                willRetry: true
+            )
+            retryTimer?.invalidate()
+            retryTimer = Timer.scheduledTimer(
+                withTimeInterval: WebViewController.retryInterval,
+                repeats: false
+            ) { [weak self, weak webView] _ in
+                guard let self, let webView, let url = self.url else { return }
+                self.load(url, in: webView)
+            }
+        }
+    }
 }
 
 #Preview {
