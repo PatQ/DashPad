@@ -64,11 +64,22 @@ private struct SidebarIcon: View {
     }
 }
 
+/// Centers the icon against the whole title block. The default style aligns it to the
+/// first line only, which leaves a two-line title (title + subtitle) hanging below the icon.
+private struct CenteredIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            configuration.icon
+            configuration.title
+        }
+    }
+}
+
 // MARK: - App Store review link
 
 private enum AppStoreReview {
     /// The app's Apple ID from App Store Connect (App Information → General → Apple ID).
-    /// While empty, the Rate DashPad row is hidden rather than linking to a page that doesn't exist.
+    /// While empty, the review row is hidden rather than linking to a page that doesn't exist.
     static let appID = "6766830819"
 
     /// Opens the App Store straight onto the write-a-review sheet. Used instead of
@@ -178,7 +189,7 @@ struct SettingsView: View {
                         sidebarFooterButton(action: { openURL(reviewURL) }) {
                             Label {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Rate DashPad")
+                                    Text("Leave us a Review")
                                     Text("It really helps")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -212,6 +223,7 @@ struct SettingsView: View {
     private func sidebarFooterButton<Content: View>(action: @escaping () -> Void, @ViewBuilder label: () -> Content) -> some View {
         Button(action: action) {
             label()
+                .labelStyle(CenteredIconLabelStyle())
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 30)
                 .padding(.trailing, 16)
@@ -612,15 +624,15 @@ struct SettingsView: View {
                     settings.idleScreenType = .clock
                 }
                 if settings.idleScreenType == .clock {
-                    Picker("Style", selection: s.clockStyle) {
-                        ForEach(ClockStyle.allCases, id: \.self) {
-                            Text($0.displayName).tag($0)
-                        }
-                    }
+                    ClockStylePicker(selection: s.clockStyle, appearance: settings.clockAppearance)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
                     ClockPreviewCard()
+                    if !settings.clockStyle.isClassic {
+                        clockCustomisationRows(s)
+                    }
                 }
             } footer: {
-                Text("Displays a full-screen clock. Choose between a minimal digital readout or a traditional analog face.")
+                Text("Displays a full-screen clock. Pick a style, then make it yours with colours and a typeface.")
             }
 
             Section {
@@ -658,10 +670,77 @@ struct SettingsView: View {
             }
         }
         .animation(.default, value: settings.idleScreenType)
+        .animation(.default, value: settings.clockStyle)
         .hiddenScrollContentBackground()
         .clearNavigationBackground()
         .navigationTitle("Idle Screen")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Theme, typeface and the options that apply to the selected themed face. The classic
+    /// faces are fixed black and white, so they get none of these.
+    @ViewBuilder
+    private func clockCustomisationRows(_ s: EnvironmentObject<AppSettings>.Wrapper) -> some View {
+        let options = s.clockOptions
+
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Theme")
+            ClockThemePicker(selection: themeBinding(for: settings.clockStyle), style: settings.clockStyle)
+        }
+        .padding(.vertical, 4)
+
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Typeface")
+            Picker("Typeface", selection: s.clockTypeface) {
+                ForEach(ClockTypeface.allCases, id: \.self) {
+                    Text($0.displayName).tag($0)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+        .padding(.vertical, 4)
+
+        Toggle("Show date", isOn: options.showDate)
+
+        switch settings.clockStyle {
+        case .numerals:
+            Toggle("Seconds hand", isOn: options.showSeconds)
+        case .tiles:
+            menuPicker("Shape", selection: options.tileShape, \.displayName)
+            Toggle("Split line", isOn: options.tileSplit)
+        case .words:
+            menuPicker("Language", selection: options.wordsLanguage, \.displayName)
+            Toggle("Show time in digits", isOn: options.wordsShowDigits)
+        case .halves:
+            Toggle("Numbers bleed off edge", isOn: options.halvesBleed)
+        case .sweep:
+            menuPicker("Ring", selection: options.sweepRing, \.displayName)
+            Toggle("Show minutes", isOn: options.sweepShowMinutes)
+            Toggle("Hour marker", isOn: options.sweepShowHourDot)
+        case .dots:
+            menuPicker("Dot shape", selection: options.dotShape, \.displayName)
+            Toggle("Row labels", isOn: options.dotsShowScale)
+        case .digital, .analog:
+            EmptyView()
+        }
+    }
+
+    /// The selected face's own theme; changing it leaves every other face's theme alone.
+    private func themeBinding(for style: ClockStyle) -> Binding<ClockTheme> {
+        Binding(get: { settings.clockThemes[style] },
+                set: { settings.clockThemes[style] = $0 })
+    }
+
+    private func menuPicker<Value: CaseIterable & Hashable>(
+        _ title: String, selection: Binding<Value>, _ name: KeyPath<Value, String>
+    ) -> some View where Value.AllCases: RandomAccessCollection {
+        Picker(title, selection: selection) {
+            ForEach(Value.allCases, id: \.self) {
+                Text($0[keyPath: name]).tag($0)
+            }
+        }
+        .pickerStyle(.menu)
     }
 
     // MARK: - Detail: Brightness
@@ -888,71 +967,17 @@ private struct IdleOptionRow: View {
 
 // MARK: - Clock preview card
 
+/// The selected face, live, drawn exactly as the idle screen draws it.
 private struct ClockPreviewCard: View {
     @EnvironmentObject var settings: AppSettings
-    @State private var now = Date()
-    private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black)
-            switch settings.clockStyle {
-            case .digital:
-                VStack(spacing: 6) {
-                    Text(now, format: .dateTime.hour().minute().second())
-                        .font(.system(size: 36, weight: .thin))
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                    Text(now, format: .dateTime.weekday(.wide).month().day().year())
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-            case .analog:
-                MiniAnalogClockFace(now: now)
-            }
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            ClockFaceView(style: settings.clockStyle, date: context.date, appearance: settings.clockAppearance)
         }
-        .frame(height: 130)
-        .onReceive(ticker) { now = $0 }
-    }
-}
-
-private struct MiniAnalogClockFace: View {
-    let now: Date
-
-    private var calendar: Calendar { .current }
-    private var seconds: Double { Double(calendar.component(.second, from: now)) }
-    private var minutes: Double { Double(calendar.component(.minute, from: now)) + seconds / 60 }
-    private var hours: Double {
-        Double(calendar.component(.hour, from: now)).truncatingRemainder(dividingBy: 12) + minutes / 60
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.white.opacity(0.15), lineWidth: 1.5)
-                .frame(width: 90, height: 90)
-            ForEach(0..<12, id: \.self) { i in
-                Rectangle()
-                    .fill(Color.white.opacity(0.4))
-                    .frame(width: 1.5, height: 6)
-                    .offset(y: -40)
-                    .rotationEffect(.degrees(Double(i) * 30))
-            }
-            miniHand(angle: .degrees(hours * 30), length: 25, width: 3, color: .white)
-            miniHand(angle: .degrees(minutes * 6), length: 35, width: 2, color: .white)
-            miniHand(angle: .degrees(seconds * 6), length: 38, width: 1, color: .red)
-            Circle().fill(Color.white).frame(width: 6, height: 6)
-        }
-    }
-
-    @ViewBuilder
-    private func miniHand(angle: Angle, length: CGFloat, width: CGFloat, color: Color) -> some View {
-        Capsule()
-            .fill(color)
-            .frame(width: width, height: length)
-            .offset(y: -length / 2)
-            .rotationEffect(angle)
+        .aspectRatio(ClockDesign.aspectRatio, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.vertical, 4)
     }
 }
 

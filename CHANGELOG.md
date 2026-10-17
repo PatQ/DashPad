@@ -8,10 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Settings → Dashboard → Hide Status Bar hides the clock, date, battery and Wi-Fi indicators while
   the dashboard is showing. On by default; the idle screen always hides the status bar.
-- Settings sidebar has a Rate DashPad row that opens the App Store's write-a-review page. Nothing
+- Settings sidebar has a "Leave us a Review" row that opens the App Store's write-a-review page. Nothing
   happens unless the user taps it; the app never prompts for a rating on its own.
+- Six new idle clock faces: Numerals, Tiles, Words, Halves, Sweep and Dots. Each has seven colour
+  themes (Fern, Clay, Sky, Butter, Night, Ink, Paper), starting in the one it was designed
+  with and remembered per face, so restyling one leaves the others alone. Also a typeface choice (Automatic, Sans,
+  Rounded, Serif, Mono) and a few options of its own. Words tells the time in English or Spanish.
+  Settings → Idle Screen now picks the face from a row of live thumbnails, with a live preview,
+  and onboarding offers the same thumbnails. The themed faces shift a few points every 10 minutes
+  to avoid burn-in.
 
 ### Changed
+- The original Digital and Analog clocks are now called Dark Digital and Dark Analog, marked as
+  night friendly. They look the same as before, and existing users keep their choice. Both now
+  update exactly on the minute, instead of up to a minute late.
 - The Custom URL idle screen is now display-only: taps always wake the dashboard instead of
   going to the page, and the page can't be used to browse away from the idle URL. Videos and
   slideshows on it autoplay.

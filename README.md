@@ -60,7 +60,7 @@ The commercial iOS kiosk apps are priced and designed for retail and museum depl
 - **Schedule.** No camera used. Define one or more Active windows by time of day; everything outside a window goes idle automatically. Windows can be the same every day or configured per day of the week. Midnight-spanning windows (e.g. 22:00 to 07:00) are supported. While idle, a single tap anywhere on the idle screen wakes the dashboard for a configurable duration, with each subsequent tap resetting the timer.
 - **Always Active.** The dashboard stays on at all times. No detection of any kind is performed.
 
-**Idle screen.** Three modes: a digital or analogue clock, a pure black screen, or a custom URL (useful for a dedicated screensaver dashboard or a photo frame). Active and idle brightness are independently configurable.
+**Idle screen.** Three modes: a clock (eight faces, from two dark, night-friendly ones to six colourful themed faces), a pure black screen, or a custom URL (useful for a dedicated screensaver dashboard or a photo frame). Active and idle brightness are independently configurable.
 
 **Optional PIN lock.** A PIN can be set to gate access to settings. It is off by default. Face ID or your device passcode can unlock it if you forget the PIN.
 
@@ -196,7 +196,7 @@ Three mutually exclusive modes:
 
 | Mode       | Description                                                                |
 | ---------- | -------------------------------------------------------------------------- |
-| Clock      | Full-screen clock. Choose Digital or Analog style.                         |
+| Clock      | Full-screen clock. Choose Dark Digital or Dark Analog (night friendly), or one of six themed faces (Numerals, Tiles, Words, Halves, Sweep, Dots). Each themed face keeps its own colour theme, and has a typeface and per-face options. |
 | Blank      | Pure black screen. Pair with a low idle brightness to minimise power draw. |
 | Custom URL | Loads a second URL while idle: a Home Assistant view built as a clock, weather or calendar screen, a photo frame, or any other page. The page is display-only; tapping it wakes the dashboard. If it can't load, DashPad says so and retries every 10 seconds. |
 

@@ -30,6 +30,9 @@ struct OnboardingView: View {
     @State private var urlError: String? = nil
     @State private var urlSetupMode: URLSetupMode? = nil
     @State private var selectedIdleType: IdleScreenType = .clock
+    /// Only the face is picked here; its theme and options live in Settings › Idle Screen, so the
+    /// first run stays one tap per question.
+    @State private var selectedClockStyle: ClockStyle = .digital
     /// Idle screen URL, only collected when `selectedIdleType == .customURL`.
     @State private var idleURLText = ""
     @State private var idleURLError: String? = nil
@@ -129,6 +132,7 @@ struct OnboardingView: View {
             }
             urlError = nil
             selectedIdleType = settings.idleScreenType
+            selectedClockStyle = settings.clockStyle
             idleURLText = settings.idleCustomURL
             idleURLError = nil
             cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
@@ -294,6 +298,9 @@ struct OnboardingView: View {
             settings.idleCustomURL = url
         }
         settings.idleScreenType = selectedIdleType
+        if selectedIdleType == .clock {
+            settings.clockStyle = selectedClockStyle
+        }
         resignKeyboard()
         advance(from: 4)
     }
@@ -516,7 +523,16 @@ struct OnboardingView: View {
             )
 
             VStack(spacing: 10) {
-                idleOptionCard(type: .clock,     description: "Digital or analogue clock, easy to read at a distance.")
+                idleOptionCard(type: .clock,     description: "Eight faces, from dark night-friendly ones to colourful ones, easy to read at a distance.")
+                if selectedIdleType == .clock {
+                    // Wider than the 520-point column, so the row can scroll edge to edge.
+                    ClockStylePicker(selection: $selectedClockStyle,
+                                     appearance: settings.clockAppearance,
+                                     thumbnailWidth: 132,
+                                     edgeInset: 28)
+                        .padding(.horizontal, -28)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
                 idleOptionCard(type: .blank,     description: "Solid black screen for the lowest power draw.")
                 idleOptionCard(type: .customURL, description: "Load a different page: a slideshow, weather, or anything you like.")
             }
@@ -540,7 +556,9 @@ struct OnboardingView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            footerNote("Changeable anytime in Settings → Idle Screen.")
+            footerNote(selectedIdleType == .clock
+                       ? "Colours, typeface and other options are in Settings → Idle Screen."
+                       : "Changeable anytime in Settings → Idle Screen.")
         }
     }
 

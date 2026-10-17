@@ -37,7 +37,17 @@ DashPad/
 │
 ├── Idle/
 │   ├── IdleView.swift        Switches between clock, blank, and custom URL modes
-│   └── ClockView.swift       Digital and analogue clock implementations
+│   ├── ClockView.swift       Idle clock (TimelineView); ClockFaceView switches on clockStyle; Dark Digital/Analog faces
+│   └── Clocks/
+│       ├── ClockTheme.swift      ClockTheme and each face's hand-tuned colour table
+│       ├── ClockTypeface.swift   Typeface setting, per-face default design/weight, ClockFont
+│       ├── ClockOptions.swift    Per-face options (Codable, tolerant decoding)
+│       ├── ClockTime.swift       Hour in the device's 12/24-hour style, date labels
+│       ├── ClockCanvas.swift     1180×820 design canvas scaled to fit, background fill, burn-in shift
+│       ├── ClockPhrase.swift     Time in words for the Words face (English, Spanish)
+│       ├── ClockPickers.swift    Style thumbnails and theme swatches (Settings and onboarding)
+│       └── NumeralsClockFace.swift, TilesClockFace.swift, WordsClockFace.swift,
+│           HalvesClockFace.swift, SweepClockFace.swift, DotsClockFace.swift
 │
 └── Settings/
     ├── SettingsView.swift    NavigationSplitView settings panel; all settings sections
@@ -192,6 +202,12 @@ Custom URL mode uses its own WKWebView (`IdleWebPage` / `IdleWebView` in `IdleVi
 - **Failures.** Uses the same `LoadFailure` helpers as the dashboard: abandoned loads are ignored, anything else shows "Can't load idle screen" and retries the idle URL after `WebViewController.retryInterval`. A terminated web content process reloads the idle URL.
 
 `AppSettings.idleWebURL` is nil unless `idleCustomURL` parses through `AppSettings.webURL(from:)` (http or https, with a host). In that case `IdleView` shows the clock, and Settings shows a warning under the URL field. Onboarding uses the same check.
+
+### Clock faces
+
+Every face is laid out in a fixed 1180×820 design space (iPad landscape). `ClockCanvas` works out the scale that fits its container and hands it to the face, which multiplies every dimension by it. This is used instead of `scaleEffect`, so text is drawn at its on-screen size and stays sharp when the scale goes above 1. The face's background colour fills whatever the canvas doesn't cover (portrait, other aspect ratios). The same view draws the idle screen, the Settings preview and the style thumbnails. Each face takes plain inputs (date, colours, typeface, options, scale), so thumbnails can show a fixed time.
+
+The themed faces read colours from per-face tables in `ClockTheme.swift`. Adding a theme means one case plus one row per table. The chosen theme is stored per face (`AppSettings.clockThemes`); a face without a choice uses its designed `ClockStyle.defaultTheme`. Dark Digital and Dark Analog ignore theme, typeface and options; on the idle screen they are drawn at their original fixed size, not fitted to the canvas. `ClockView` redraws with `TimelineView`: every second only for faces that move every second (Numerals with its seconds hand, Sweep), and on the minute for the rest. On the idle screen, themed faces jump up to ±6 design points every 10 minutes to avoid OLED burn-in.
 
 ### App Transport Security
 

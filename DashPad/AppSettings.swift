@@ -17,6 +17,9 @@ class AppSettings: ObservableObject {
     @Published var idleScreenType: IdleScreenType { didSet { save(idleScreenType.rawValue, key: .idleScreenType) } }
     @Published var idleCustomURL: String { didSet { save(idleCustomURL, key: .idleCustomURL) } }
     @Published var clockStyle: ClockStyle { didSet { save(clockStyle.rawValue, key: .clockStyle) } }
+    @Published var clockThemes: ClockThemes { didSet { saveCodable(clockThemes, key: .clockThemes) } }
+    @Published var clockTypeface: ClockTypeface { didSet { save(clockTypeface.rawValue, key: .clockTypeface) } }
+    @Published var clockOptions: ClockOptions { didSet { saveCodable(clockOptions, key: .clockOptions) } }
     @Published var idleBrightness: Double { didSet { save(idleBrightness, key: .idleBrightness) } }
     @Published var activeBrightness: Double { didSet { save(activeBrightness, key: .activeBrightness) } }
     @Published var presenceMode: PresenceMode { didSet { save(presenceMode.rawValue, key: .presenceMode) } }
@@ -62,6 +65,9 @@ class AppSettings: ObservableObject {
         idleScreenType = IdleScreenType(rawValue: ud.string(forKey: Key.idleScreenType.rawValue) ?? "") ?? .clock
         idleCustomURL = ud.string(forKey: Key.idleCustomURL.rawValue) ?? ""
         clockStyle = ClockStyle(rawValue: ud.string(forKey: Key.clockStyle.rawValue) ?? "") ?? .digital
+        clockThemes = Self.decodeCodable(ClockThemes.self, forKey: Key.clockThemes.rawValue) ?? ClockThemes()
+        clockTypeface = ClockTypeface(rawValue: ud.string(forKey: Key.clockTypeface.rawValue) ?? "") ?? .automatic
+        clockOptions = Self.decodeCodable(ClockOptions.self, forKey: Key.clockOptions.rawValue) ?? ClockOptions()
         idleBrightness = ud.optionalDouble(forKey: Key.idleBrightness.rawValue) ?? 0.15
         activeBrightness = ud.optionalDouble(forKey: Key.activeBrightness.rawValue) ?? 0.80
         presenceMode = PresenceMode(rawValue: ud.string(forKey: Key.presenceMode.rawValue) ?? "") ?? .automatic
@@ -98,6 +104,7 @@ class AppSettings: ObservableObject {
 
     private enum Key: String {
         case homeURL, idleTimeout, idleScreenType, idleCustomURL, clockStyle
+        case clockThemes, clockTypeface, clockOptions
         case presenceEnabled // legacy key - do not use, kept for migration reads only
         case presenceMode, weeklySchedule, manualWakeTimeout
         case idleBrightness, activeBrightness, cameraSampleRate, nightSampleRate
@@ -201,15 +208,28 @@ enum DetectionMode: String, CaseIterable {
     }
 }
 
+/// The order here is the order of the style picker. The raw values are persisted, so the two
+/// original faces keep theirs ("digital", "analog") under their new display names.
 enum ClockStyle: String, CaseIterable {
     case digital, analog
+    case numerals, tiles, words, halves, sweep, dots
 
     var displayName: String {
         switch self {
-        case .digital: "Digital"
-        case .analog: "Analog"
+        case .digital: "Dark Digital"
+        case .analog: "Dark Analog"
+        case .numerals: "Numerals"
+        case .tiles: "Tiles"
+        case .words: "Words"
+        case .halves: "Halves"
+        case .sweep: "Sweep"
+        case .dots: "Dots"
         }
     }
+
+    /// The original white-on-black faces. They ignore the theme, typeface and options, and
+    /// are labelled night friendly: mostly black, they give off the least light in a dark room.
+    var isClassic: Bool { self == .digital || self == .analog }
 }
 
 // MARK: - Helpers
