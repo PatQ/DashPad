@@ -36,18 +36,23 @@ DashPad/
 │   └── PresenceDebugViewModel.swift  Observable state for the debug UI
 │
 ├── Idle/
-│   ├── IdleView.swift        Switches between clock, blank, and custom URL modes
+│   ├── IdleView.swift        Switches between clock, photos, blank, and custom URL modes
 │   ├── ClockView.swift       Idle clock (TimelineView); ClockFaceView switches on clockStyle; Dark Digital/Analog faces
-│   └── Clocks/
-│       ├── ClockTheme.swift      ClockTheme and each face's hand-tuned colour table
-│       ├── ClockTypeface.swift   Typeface setting, per-face default design/weight, ClockFont
-│       ├── ClockOptions.swift    Per-face options (Codable, tolerant decoding)
-│       ├── ClockTime.swift       Hour in the device's 12/24-hour style, date labels
-│       ├── ClockCanvas.swift     1180×820 design canvas scaled to fit, background fill, burn-in shift
-│       ├── ClockPhrase.swift     Time in words for the Words face (English, Spanish)
-│       ├── ClockPickers.swift    Style thumbnails and theme swatches (Settings and onboarding)
-│       └── NumeralsClockFace.swift, TilesClockFace.swift, WordsClockFace.swift,
-│           HalvesClockFace.swift, SweepClockFace.swift, DotsClockFace.swift
+│   ├── Clocks/
+│   │   ├── ClockTheme.swift      ClockTheme and each face's hand-tuned colour table
+│   │   ├── ClockTypeface.swift   Typeface setting, per-face default design/weight, ClockFont
+│   │   ├── ClockOptions.swift    Per-face options and 12/24-hour format (Codable, tolerant decoding)
+│   │   ├── ClockTime.swift       Hour in the chosen 12/24-hour style, date labels
+│   │   ├── ClockCanvas.swift     1180×820 design canvas scaled to fit, background fill, burn-in shift
+│   │   ├── ClockPhrase.swift     Time in words for the Words face (English, Spanish)
+│   │   ├── ClockPickers.swift    Style thumbnails and theme swatches (Settings and onboarding)
+│   │   └── NumeralsClockFace.swift, TilesClockFace.swift, WordsClockFace.swift,
+│   │       HalvesClockFace.swift, SweepClockFace.swift, DotsClockFace.swift
+│   └── Photos/
+│       ├── IdlePhotos.swift          IdlePhoto, PhotoOptions, AppSettings add/remove helpers
+│       ├── IdlePhotoStore.swift      Photo copies on disk: import, thumbnails, decoding for display
+│       ├── IdlePhotoPicker.swift     System photo picker, importer, thumbnail grid (Settings and onboarding)
+│       └── PhotoSlideshowView.swift  Slideshow driver, UIKit crossfade and drift, clock overlay
 │
 └── Settings/
     ├── SettingsView.swift    NavigationSplitView settings panel; all settings sections
@@ -79,7 +84,9 @@ DashPadApp
     ├── KioskBrowserView          (when displayState == .active)
     │   └── WebViewRepresentable  (UIViewRepresentable wrapping WKWebView)
     ├── IdleView                  (when displayState == .idle)
-    │   ├── ClockView             (idleScreenType == .clock)
+    │   ├── ClockView             (idleScreenType == .clock, or .photos with no photos yet)
+    │   ├── PhotoSlideshowView    (idleScreenType == .photos)
+    │   │   └── SlideshowUIView   (UIView: crossfade and slow zoom/pan in Core Animation)
     │   ├── Color.black           (idleScreenType == .blank)
     │   └── IdleWebPage           (idleScreenType == .customURL, display-only)
     │       └── IdleWebView       (UIViewRepresentable wrapping its own WKWebView)
@@ -208,6 +215,12 @@ Custom URL mode uses its own WKWebView (`IdleWebPage` / `IdleWebView` in `IdleVi
 Every face is laid out in a fixed 1180×820 design space (iPad landscape). `ClockCanvas` works out the scale that fits its container and hands it to the face, which multiplies every dimension by it. This is used instead of `scaleEffect`, so text is drawn at its on-screen size and stays sharp when the scale goes above 1. The face's background colour fills whatever the canvas doesn't cover (portrait, other aspect ratios). The same view draws the idle screen, the Settings preview and the style thumbnails. Each face takes plain inputs (date, colours, typeface, options, scale), so thumbnails can show a fixed time.
 
 The themed faces read colours from per-face tables in `ClockTheme.swift`. Adding a theme means one case plus one row per table. The chosen theme is stored per face (`AppSettings.clockThemes`); a face without a choice uses its designed `ClockStyle.defaultTheme`. Dark Digital and Dark Analog ignore theme, typeface and options; on the idle screen they are drawn at their original fixed size, not fitted to the canvas. `ClockView` redraws with `TimelineView`: every second only for faces that move every second (Numerals with its seconds hand, Sweep), and on the minute for the rest. On the idle screen, themed faces jump up to ±6 design points every 10 minutes to avoid OLED burn-in.
+
+### Photos
+
+Photos are picked with `PHPickerViewController`, which runs out of process and returns only what was picked, so DashPad never asks for photo library permission. Each one is copied into `Application Support/IdlePhotos/` as a JPEG no larger than the biggest iPad screen (2752 px), upright and in standard dynamic range; `AppSettings.idlePhotos` stores only their IDs. Copies rather than library references, because a reference needs full library access and breaks when the original is deleted or offloaded to iCloud. The folder is excluded from backups, in line with PRIVACY.md. Files that no setting refers to are deleted at launch.
+
+`PhotoSlideshowView` decodes one photo at a time off the main thread and hands it to `SlideshowUIView`. One photo stays up, drifting back and forth; two or more advance on a timer, crossfading. The crossfade and the drift (a slow zoom with a slight pan, against burn-in) are UIKit animations, so Core Animation runs them in the render server and the app does no per-frame work between photos. The position in the loop is remembered between idle periods (not across launches), so each idle period continues rather than restarting at the first photo.
 
 ### App Transport Security
 

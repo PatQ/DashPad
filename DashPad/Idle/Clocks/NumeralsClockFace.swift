@@ -14,7 +14,7 @@ struct NumeralsClockFace: View {
 
     var body: some View {
         let s = scale
-        let time = ClockTime(date)
+        let time = ClockTime(date, hourFormat: options.hourFormat)
         let seconds = options.showSeconds ? Double(time.second) : 0
         let minutes = Double(time.minute) + seconds / 60
         let hours = Double(time.hour % 12) + minutes / 60

@@ -34,7 +34,7 @@ struct ClockView: View {
             // exactly as they always have, on iPhone too.
             ZStack {
                 Color.black.ignoresSafeArea()
-                ClassicClockFace(style: style, date: date)
+                ClassicClockFace(style: style, date: date, hourFormat: appearance.options.hourFormat)
             }
         } else {
             ClockFaceView(style: style, date: date, appearance: appearance, shiftsForBurnIn: true)
@@ -68,6 +68,9 @@ extension ClockStyle {
         default: false
         }
     }
+
+    /// Faces that write the hour in digits, so 12 or 24-hour time changes what they draw.
+    var showsHourDigits: Bool { self != .analog && self != .numerals }
 }
 
 // MARK: - Any face, fitted
@@ -91,13 +94,13 @@ struct ClockFaceView: View {
         let theme = appearance.themes[style]
         let typeface = appearance.typeface.resolved(for: style)
         let options = appearance.options
-        let label = ClockTime(date).accessibilityLabel
+        let label = ClockTime(date, hourFormat: options.hourFormat).accessibilityLabel
         let burnInDate = shiftsForBurnIn ? date : nil
 
         switch style {
         case .digital, .analog:
             ClockCanvas(accessibilityLabel: label, background: Color.black) { s in
-                ClassicClockFace(style: style, date: date, scale: s)
+                ClassicClockFace(style: style, date: date, hourFormat: options.hourFormat, scale: s)
                     .designFrame(scale: s)
             }
         case .numerals:
@@ -142,24 +145,26 @@ struct ClockFaceView: View {
 private struct ClassicClockFace: View {
     let style: ClockStyle
     let date: Date
+    let hourFormat: HourFormat
     var scale: CGFloat = 1
 
     var body: some View {
         if style == .analog {
-            AnalogClockFace(now: date, scale: scale)
+            AnalogClockFace(now: date, hourFormat: hourFormat, scale: scale)
         } else {
-            DigitalClockFace(now: date, scale: scale)
+            DigitalClockFace(now: date, hourFormat: hourFormat, scale: scale)
         }
     }
 }
 
 private struct DigitalClockFace: View {
     let now: Date
+    let hourFormat: HourFormat
     let scale: CGFloat
 
     var body: some View {
         VStack(spacing: 12 * scale) {
-            Text(now, format: .dateTime.hour().minute())
+            Text(hourFormat.timeText(now))
                 .font(.system(size: 96 * scale, weight: .thin, design: .default))
                 .monospacedDigit()
                 .foregroundStyle(.white)
@@ -174,6 +179,7 @@ private struct DigitalClockFace: View {
 
 private struct AnalogClockFace: View {
     let now: Date
+    let hourFormat: HourFormat
     let scale: CGFloat
 
     private var calendar: Calendar { .current }
@@ -204,7 +210,7 @@ private struct AnalogClockFace: View {
             Circle().fill(Color.white).frame(width: 10 * s, height: 10 * s)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(ClockTime(now).accessibilityLabel)
+        .accessibilityLabel(ClockTime(now, hourFormat: hourFormat).accessibilityLabel)
     }
 }
 

@@ -14,7 +14,7 @@ struct TilesClockFace: View {
 
     var body: some View {
         let s = scale
-        let time = ClockTime(date)
+        let time = ClockTime(date, hourFormat: options.hourFormat)
         // The hour always fills two tiles; in 12-hour time a leading zero is drawn faintly.
         let hh = Array(time.hourText(padded12Hour: true))
         let mm = Array(time.minuteText)

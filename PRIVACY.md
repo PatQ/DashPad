@@ -26,6 +26,12 @@ All settings are stored in `UserDefaults` on the device. No settings are synced 
 
 ---
 
+## Photos
+
+If you choose the Photos idle screen, you pick photos with the system photo picker. The picker runs outside DashPad and hands over only the photos you select, so DashPad does not ask for access to your photo library and cannot see the rest of it. The selected photos are copied into DashPad's own storage on the iPad, reduced to screen size, and are excluded from device backups. They are never uploaded or transmitted. Removing a photo in Settings deletes DashPad's copy; the original in your library is untouched.
+
+---
+
 ## PIN
 
 The exit PIN, when set, is stored in the iOS Keychain. It is never transmitted and never leaves the device.

@@ -36,6 +36,8 @@ struct OnboardingView: View {
     /// Idle screen URL, only collected when `selectedIdleType == .customURL`.
     @State private var idleURLText = ""
     @State private var idleURLError: String? = nil
+    /// Shown when Photos is chosen without any photos. Photos are saved as they're picked.
+    @State private var idlePhotosError: String? = nil
     @State private var showingPINSetup = false
     /// Set by `PINSetupView`'s completion callback, consumed when its sheet finishes dismissing.
     @State private var didSetPIN = false
@@ -289,6 +291,11 @@ struct OnboardingView: View {
     /// mode is saved with an empty `idleCustomURL`, and `IdleView` quietly shows the clock while
     /// Settings reports Custom URL.
     private func continueFromIdleStep() {
+        if selectedIdleType == .photos, settings.idlePhotos.isEmpty {
+            idlePhotosError = "Add at least one photo, or choose another option."
+            return
+        }
+        idlePhotosError = nil
         if selectedIdleType == .customURL {
             guard let url = normalizedURL(from: idleURLText) else {
                 idleURLError = Self.urlErrorMessage
@@ -533,6 +540,21 @@ struct OnboardingView: View {
                         .padding(.horizontal, -28)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+                idleOptionCard(type: .photos,    description: "Your own photos. Pick several and they play as a slideshow.")
+                if selectedIdleType == .photos {
+                    VStack(alignment: .leading, spacing: 6) {
+                        IdlePhotoGrid(thumbnailSize: 72)
+                        if let error = idlePhotosError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .onChangeCompat(of: settings.idlePhotos.isEmpty) { isEmpty in
+                        if !isEmpty { idlePhotosError = nil }
+                    }
+                }
                 idleOptionCard(type: .blank,     description: "Solid black screen for the lowest power draw.")
                 idleOptionCard(type: .customURL, description: "Load a different page: a slideshow, weather, or anything you like.")
             }
@@ -556,9 +578,15 @@ struct OnboardingView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            footerNote(selectedIdleType == .clock
-                       ? "Colours, typeface and other options are in Settings → Idle Screen."
-                       : "Changeable anytime in Settings → Idle Screen.")
+            footerNote(idleStepFooter)
+        }
+    }
+
+    private var idleStepFooter: String {
+        switch selectedIdleType {
+        case .clock: "Colours, typeface and other options are in Settings → Idle Screen."
+        case .photos: "Slideshow timing, shuffle and a clock overlay are in Settings → Idle Screen."
+        default: "Changeable anytime in Settings → Idle Screen."
         }
     }
 

@@ -14,7 +14,7 @@ struct HalvesClockFace: View {
 
     var body: some View {
         let s = scale
-        let time = ClockTime(date)
+        let time = ClockTime(date, hourFormat: options.hourFormat)
 
         HStack(spacing: 0) {
             panel(time.hourText(), background: colors.a, ink: colors.aInk)

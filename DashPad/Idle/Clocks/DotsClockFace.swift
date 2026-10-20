@@ -14,7 +14,7 @@ struct DotsClockFace: View {
 
     var body: some View {
         let s = scale
-        let time = ClockTime(date)
+        let time = ClockTime(date, hourFormat: options.hourFormat)
         let hourFont = ClockFont(size: 360 * s, weight: ClockStyle.dots.faceWeight, typeface: typeface)
 
         HStack(alignment: .center, spacing: 96 * s) {

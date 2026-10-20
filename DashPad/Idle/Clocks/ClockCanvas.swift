@@ -20,7 +20,7 @@ struct ClockCanvas<Background: View, Content: View>: View {
     var body: some View {
         GeometryReader { geo in
             let scale = min(geo.size.width / ClockDesign.width, geo.size.height / ClockDesign.height)
-            let shift = burnInDate.map(Self.burnInShift) ?? .zero
+            let shift = burnInDate.map(ClockDesign.burnInShift) ?? .zero
             ZStack {
                 // Overscanned so the edges stay covered when the burn-in shift moves everything.
                 background.padding(-12 * scale)
@@ -35,6 +35,13 @@ struct ClockCanvas<Background: View, Content: View>: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
+}
+
+/// The design space: iPad landscape, origin top left. Mockup pixels are design points.
+nonisolated enum ClockDesign {
+    static let width: CGFloat = 1180
+    static let height: CGFloat = 820
+    static let aspectRatio = width / height
 
     /// Up to ±6 design points in each direction, changing every 10 minutes. Derived from the
     /// time slot so it is stable between redraws, and jumps rather than animates.
@@ -47,13 +54,6 @@ struct ClockCanvas<Background: View, Content: View>: View {
         x ^= x >> 31
         return CGSize(width: CGFloat(Int(x % 13) - 6), height: CGFloat(Int((x >> 32) % 13) - 6))
     }
-}
-
-/// The design space: iPad landscape, origin top left. Mockup pixels are design points.
-enum ClockDesign {
-    static let width: CGFloat = 1180
-    static let height: CGFloat = 820
-    static let aspectRatio = width / height
 }
 
 extension View {

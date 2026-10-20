@@ -14,7 +14,7 @@ struct WordsClockFace: View {
 
     var body: some View {
         let s = scale
-        let time = ClockTime(date)
+        let time = ClockTime(date, hourFormat: options.hourFormat)
         let sentenceFont = ClockFont(size: 122 * s, weight: ClockStyle.words.faceWeight, typeface: typeface)
         let footerFont = ClockFont(size: 30 * s, weight: .semibold, typeface: typeface)
 

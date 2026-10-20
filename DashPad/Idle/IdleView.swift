@@ -2,7 +2,7 @@
 // Licensed under PolyForm Noncommercial 1.0.0. Commercial use requires a separate license: dashpad@rafapages.com
 
 // IdleView.swift - shown whenever KioskManager.displayState is .idle.
-// Switches between the three idle screen modes (clock, blank, custom URL).
+// Switches between the idle screen modes (clock, photos, blank, custom URL).
 
 import SwiftUI
 import WebKit
@@ -20,6 +20,14 @@ struct IdleView: View {
 
             case .clock:
                 ClockView()
+
+            case .photos:
+                // With no photos yet, show the clock rather than a black screen.
+                if settings.idlePhotos.isEmpty {
+                    ClockView()
+                } else {
+                    PhotoSlideshowView(photos: settings.idlePhotos, options: settings.photoOptions)
+                }
 
             case .customURL:
                 if let url = settings.idleWebURL {

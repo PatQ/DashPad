@@ -6,6 +6,7 @@
 import Foundation
 
 struct ClockOptions: Codable, Equatable {
+    var hourFormat: HourFormat = .system    // every face that shows the hour in digits
     var showDate = true                     // all themed faces
     var showSeconds = true                  // Numerals
     var tileShape: TileShape = .rounded     // Tiles
@@ -26,6 +27,7 @@ struct ClockOptions: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = ClockOptions()
+        hourFormat = (try? c.decodeIfPresent(HourFormat.self, forKey: .hourFormat)) ?? d.hourFormat
         showDate = try c.decodeIfPresent(Bool.self, forKey: .showDate) ?? d.showDate
         showSeconds = try c.decodeIfPresent(Bool.self, forKey: .showSeconds) ?? d.showSeconds
         tileShape = (try? c.decodeIfPresent(TileShape.self, forKey: .tileShape)) ?? d.tileShape
@@ -38,6 +40,51 @@ struct ClockOptions: Codable, Equatable {
         sweepShowHourDot = try c.decodeIfPresent(Bool.self, forKey: .sweepShowHourDot) ?? d.sweepShowHourDot
         dotShape = (try? c.decodeIfPresent(DotShape.self, forKey: .dotShape)) ?? d.dotShape
         dotsShowScale = try c.decodeIfPresent(Bool.self, forKey: .dotsShowScale) ?? d.dotsShowScale
+    }
+}
+
+/// 12 or 24-hour time. `system` follows Settings › General › Date & Time.
+enum HourFormat: String, CaseIterable, Codable {
+    case system, twelveHour, twentyFourHour
+
+    var displayName: String {
+        switch self {
+        case .system: "System"
+        case .twelveHour: "12-hour"
+        case .twentyFourHour: "24-hour"
+        }
+    }
+
+    /// Read on every redraw rather than cached, so flipping the system switch shows up on the
+    /// next tick without restarting the app.
+    var uses24Hour: Bool {
+        switch self {
+        case .system:
+            let format = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .autoupdatingCurrent) ?? ""
+            return !format.contains("a")
+        case .twelveHour: return false
+        case .twentyFourHour: return true
+        }
+    }
+
+    /// "9:41 PM" or "21:41" in the current locale's style.
+    func timeText(_ date: Date) -> String {
+        switch self {
+        case .system: date.formatted(date: .omitted, time: .shortened)
+        case .twelveHour: Self.twelveHourFormatter.string(from: date)
+        case .twentyFourHour: Self.twentyFourHourFormatter.string(from: date)
+        }
+    }
+
+    // "h"/"H" in a template force the hour cycle; the locale still picks separators and AM/PM.
+    private static let twelveHourFormatter = formatter(template: "hmm")
+    private static let twentyFourHourFormatter = formatter(template: "HHmm")
+
+    private static func formatter(template: String) -> DateFormatter {
+        let f = DateFormatter()
+        f.locale = .autoupdatingCurrent
+        f.setLocalizedDateFormatFromTemplate(template)
+        return f
     }
 }
 

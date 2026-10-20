@@ -1,7 +1,7 @@
 // DashPad: https://github.com/rafapages/DashPad
 // Licensed under PolyForm Noncommercial 1.0.0. Commercial use requires a separate license: dashpad@rafapages.com
 
-// ClockTime.swift - the pieces of a date the clock faces draw: hour in the device's 12/24-hour style, padded minutes, date labels.
+// ClockTime.swift - the pieces of a date the clock faces draw: hour in the chosen 12/24-hour style, padded minutes, date labels.
 
 import Foundation
 
@@ -11,21 +11,16 @@ struct ClockTime {
     let second: Int
     let uses24Hour: Bool
     private let date: Date
+    private let hourFormat: HourFormat
 
-    init(_ date: Date) {
+    init(_ date: Date, hourFormat: HourFormat = .system) {
         let parts = Calendar.current.dateComponents([.hour, .minute, .second], from: date)
         self.date = date
         hour = parts.hour ?? 0
         minute = parts.minute ?? 0
         second = parts.second ?? 0
-        uses24Hour = Self.deviceUses24Hour
-    }
-
-    /// Follows Settings › General › Date & Time. Read on every redraw rather than cached, so
-    /// flipping the switch shows up on the next tick without restarting the app.
-    static var deviceUses24Hour: Bool {
-        let format = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .autoupdatingCurrent) ?? ""
-        return !format.contains("a")
+        self.hourFormat = hourFormat
+        uses24Hour = hourFormat.uses24Hour
     }
 
     /// 0-23 in 24-hour mode, 1-12 otherwise.
@@ -59,7 +54,7 @@ struct ClockTime {
 
     /// What VoiceOver reads for every face.
     var accessibilityLabel: String {
-        date.formatted(date: .omitted, time: .shortened)
+        hourFormat.timeText(date)
     }
 
     // The faces' labels are drawn as designed (the app is in English), not in the device language.

@@ -14,7 +14,7 @@ struct SweepClockFace: View {
 
     var body: some View {
         let s = scale
-        let time = ClockTime(date)
+        let time = ClockTime(date, hourFormat: options.hourFormat)
         let minutes = Double(time.minute) + Double(time.second) / 60
         let hours = Double(time.hour % 12) + minutes / 60
         let inner = 600 - 2 * options.sweepRing.width

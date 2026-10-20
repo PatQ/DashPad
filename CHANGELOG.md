@@ -18,6 +18,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   and onboarding offers the same thumbnails. The themed faces shift a few points every 10 minutes
   to avoid burn-in.
 
+- Photos idle screen: pick photos with the system photo picker (no photo library permission
+  needed). One photo stays on screen; two or more play as a slideshow with crossfades, changing
+  every 10 seconds to 1 hour, optionally shuffled. Photos can fill the screen or be shown whole
+  over a blurred copy, drift slowly to avoid burn-in, and can show a clock in the corner. Up to
+  50 photos, copied into DashPad at screen size and excluded from backups. Also offered in
+  onboarding.
+
+- Clock time format: choose System, 12-hour or 24-hour for every clock face that shows the hour
+  in digits. System follows the iPad's Date & Time setting, as before.
+
 ### Changed
 - The original Digital and Analog clocks are now called Dark Digital and Dark Analog, marked as
   night friendly. They look the same as before, and existing users keep their choice. Both now

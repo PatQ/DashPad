@@ -20,6 +20,8 @@ class AppSettings: ObservableObject {
     @Published var clockThemes: ClockThemes { didSet { saveCodable(clockThemes, key: .clockThemes) } }
     @Published var clockTypeface: ClockTypeface { didSet { save(clockTypeface.rawValue, key: .clockTypeface) } }
     @Published var clockOptions: ClockOptions { didSet { saveCodable(clockOptions, key: .clockOptions) } }
+    @Published var idlePhotos: [IdlePhoto] { didSet { saveCodable(idlePhotos, key: .idlePhotos) } }
+    @Published var photoOptions: PhotoOptions { didSet { saveCodable(photoOptions, key: .photoOptions) } }
     @Published var idleBrightness: Double { didSet { save(idleBrightness, key: .idleBrightness) } }
     @Published var activeBrightness: Double { didSet { save(activeBrightness, key: .activeBrightness) } }
     @Published var presenceMode: PresenceMode { didSet { save(presenceMode.rawValue, key: .presenceMode) } }
@@ -68,6 +70,8 @@ class AppSettings: ObservableObject {
         clockThemes = Self.decodeCodable(ClockThemes.self, forKey: Key.clockThemes.rawValue) ?? ClockThemes()
         clockTypeface = ClockTypeface(rawValue: ud.string(forKey: Key.clockTypeface.rawValue) ?? "") ?? .automatic
         clockOptions = Self.decodeCodable(ClockOptions.self, forKey: Key.clockOptions.rawValue) ?? ClockOptions()
+        idlePhotos = Self.decodeCodable([IdlePhoto].self, forKey: Key.idlePhotos.rawValue) ?? []
+        photoOptions = Self.decodeCodable(PhotoOptions.self, forKey: Key.photoOptions.rawValue) ?? PhotoOptions()
         idleBrightness = ud.optionalDouble(forKey: Key.idleBrightness.rawValue) ?? 0.15
         activeBrightness = ud.optionalDouble(forKey: Key.activeBrightness.rawValue) ?? 0.80
         presenceMode = PresenceMode(rawValue: ud.string(forKey: Key.presenceMode.rawValue) ?? "") ?? .automatic
@@ -91,6 +95,9 @@ class AppSettings: ObservableObject {
             KeychainHelper.delete(key: Self.pinKeychainKey)
         }
         exitPIN = KeychainHelper.read(key: Self.pinKeychainKey) ?? ""
+
+        // Files from an import that never finished (the app quit mid-way) belong to no setting.
+        IdlePhotoStore.removeFiles(notIn: idlePhotos)
     }
 
     var allowedDomainList: [String] {
@@ -105,6 +112,7 @@ class AppSettings: ObservableObject {
     private enum Key: String {
         case homeURL, idleTimeout, idleScreenType, idleCustomURL, clockStyle
         case clockThemes, clockTypeface, clockOptions
+        case idlePhotos, photoOptions
         case presenceEnabled // legacy key - do not use, kept for migration reads only
         case presenceMode, weeklySchedule, manualWakeTimeout
         case idleBrightness, activeBrightness, cameraSampleRate, nightSampleRate
@@ -169,11 +177,12 @@ struct WeeklySchedule: Codable, Equatable {
 }
 
 enum IdleScreenType: String, CaseIterable {
-    case clock, blank, customURL
+    case clock, photos, blank, customURL
 
     var displayName: String {
         switch self {
         case .clock: "Clock"
+        case .photos: "Photos"
         case .blank: "Blank"
         case .customURL: "Custom URL"
         }

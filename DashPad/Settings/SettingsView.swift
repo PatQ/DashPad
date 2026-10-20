@@ -106,6 +106,7 @@ struct SettingsView: View {
     @StateObject private var debugViewModel = PresenceDebugViewModel()
     @State private var addWindowRequest: AddWindowRequest? = nil
     @State private var showingSetupAssistant = false
+    @State private var confirmingRemoveAllPhotos = false
 
     var body: some View {
         splitView
@@ -627,12 +628,47 @@ struct SettingsView: View {
                     ClockStylePicker(selection: s.clockStyle, appearance: settings.clockAppearance)
                         .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
                     ClockPreviewCard()
+                    if settings.clockStyle.showsHourDigits {
+                        menuPicker("Time format", selection: s.clockOptions.hourFormat, \.displayName)
+                    }
                     if !settings.clockStyle.isClassic {
                         clockCustomisationRows(s)
                     }
                 }
             } footer: {
                 Text("Displays a full-screen clock. Pick a style, then make it yours with colours and a typeface.")
+            }
+
+            Section {
+                IdleOptionRow(label: "Photos",
+                              isSelected: settings.idleScreenType == .photos) {
+                    settings.idleScreenType = .photos
+                }
+                if settings.idleScreenType == .photos {
+                    IdlePhotoGrid()
+                        .padding(.vertical, 6)
+                    Toggle("Fill screen", isOn: s.photoOptions.fillScreen)
+                    Toggle("Show clock", isOn: s.photoOptions.showClock)
+                    // A single photo just stays up; the slideshow settings appear with a second.
+                    if settings.idlePhotos.count > 1 {
+                        menuPicker("Change every", selection: s.photoOptions.interval, \.displayName)
+                        Toggle("Shuffle", isOn: s.photoOptions.shuffle)
+                    }
+                    if !settings.idlePhotos.isEmpty {
+                        Button("Remove All Photos", role: .destructive) {
+                            confirmingRemoveAllPhotos = true
+                        }
+                    }
+                }
+            } footer: {
+                VStack(alignment: .leading, spacing: 6) {
+                    if settings.idleScreenType == .photos, settings.idlePhotos.isEmpty {
+                        Label("Add at least one photo. Until then the clock is shown.",
+                              systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    Text("Shows your photos when idle. Pick more than one and they play as a slideshow. Photos are copied into DashPad and stay on this iPad - DashPad never sees the rest of your library.")
+                }
             }
 
             Section {
@@ -671,6 +707,14 @@ struct SettingsView: View {
         }
         .animation(.default, value: settings.idleScreenType)
         .animation(.default, value: settings.clockStyle)
+        .animation(.default, value: settings.idlePhotos.count > 1)
+        .confirmationDialog("Remove all photos from the idle screen?",
+                            isPresented: $confirmingRemoveAllPhotos,
+                            titleVisibility: .visible) {
+            Button("Remove All Photos", role: .destructive) {
+                withAnimation { settings.removeAllIdlePhotos() }
+            }
+        }
         .hiddenScrollContentBackground()
         .clearNavigationBackground()
         .navigationTitle("Idle Screen")
