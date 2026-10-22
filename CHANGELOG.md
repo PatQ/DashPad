@@ -6,6 +6,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Settings → Dashboard → Prevent Auto-Lock keeps the iPad awake and unlocked while DashPad is open,
+  even when Auto-Lock is on in the iPad's Settings. On by default; turn it off to let the iPad
+  sleep as usual.
 - Settings → Dashboard → Hide Status Bar hides the clock, date, battery and Wi-Fi indicators while
   the dashboard is showing. On by default; the idle screen always hides the status bar.
 - Settings sidebar has a "Leave us a Review" row that opens the App Store's write-a-review page. Nothing

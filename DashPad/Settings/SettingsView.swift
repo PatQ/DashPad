@@ -276,6 +276,12 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle("Prevent Auto-Lock", isOn: s.preventAutoLock)
+            } footer: {
+                Text("Keeps the iPad awake and unlocked while DashPad is open, even if Auto-Lock is turned on in the iPad's Settings. Turn off to let the iPad sleep as usual.")
+            }
+
+            Section {
                 ForEach(settings.favouriteURLs, id: \.self) { url in
                     HStack {
                         Text(url)

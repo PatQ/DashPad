@@ -71,7 +71,11 @@ struct ContentView: View {
             .environmentObject(settings)
             .environmentObject(kioskManager)
         }
+        // iPadOS Auto-Lock would otherwise sleep and lock a wall-mounted kiosk after a few
+        // minutes without touches. Dimming on idle is KioskManager's job, not the system's.
+        .onChangeCompat(of: settings.preventAutoLock) { applyIdleTimer($0) }
         .onAppear {
+            applyIdleTimer(settings.preventAutoLock)
             if hasCompletedOnboarding {
                 kioskManager.start(settings: settings)
             } else {
@@ -79,8 +83,15 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Re-asserted on every activation: the flag is not guaranteed to survive the app
+            // being backgrounded (e.g. Control Center, a call, or the user leaving Guided Access).
+            applyIdleTimer(settings.preventAutoLock)
             kioskManager.evaluateSchedule()
         }
+    }
+
+    private func applyIdleTimer(_ preventAutoLock: Bool) {
+        UIApplication.shared.isIdleTimerDisabled = preventAutoLock
     }
 }
 

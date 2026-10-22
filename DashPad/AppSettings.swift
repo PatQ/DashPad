@@ -37,6 +37,7 @@ class AppSettings: ObservableObject {
     @Published var weeklySchedule: WeeklySchedule { didSet { saveCodable(weeklySchedule, key: .weeklySchedule) } }
     @Published var manualWakeTimeout: Double { didSet { save(manualWakeTimeout, key: .manualWakeTimeout) } }
     @Published var hideStatusBar: Bool { didSet { save(hideStatusBar, key: .hideStatusBar) } }
+    @Published var preventAutoLock: Bool { didSet { save(preventAutoLock, key: .preventAutoLock) } }
 
     // PIN is stored in Keychain
     @Published var exitPIN: String {
@@ -87,6 +88,7 @@ class AppSettings: ObservableObject {
         weeklySchedule = Self.decodeCodable(WeeklySchedule.self, forKey: Key.weeklySchedule.rawValue) ?? WeeklySchedule()
         manualWakeTimeout = ud.optionalDouble(forKey: Key.manualWakeTimeout.rawValue) ?? 120.0
         hideStatusBar = ud.object(forKey: Key.hideStatusBar.rawValue) as? Bool ?? true
+        preventAutoLock = ud.object(forKey: Key.preventAutoLock.rawValue) as? Bool ?? true
 
         // Keychain items outlive app deletion, so a reinstall would otherwise come back already
         // locked by a PIN from the previous install - one the user may not remember, and which
@@ -118,7 +120,7 @@ class AppSettings: ObservableObject {
         case idleBrightness, activeBrightness, cameraSampleRate, nightSampleRate
         case presenceRecheckInterval, darkLuminanceThreshold
         case allowedDomains, customCSS, customJS, favouriteURLs, detectionMode
-        case hideStatusBar
+        case hideStatusBar, preventAutoLock
     }
 
     private func save(_ value: some Any, key: Key) {

@@ -143,6 +143,7 @@ Open the settings panel by **triple-tapping the bottom-right corner**. If an exi
 | Home URL        | `http://homeassistant.local:8123` | The dashboard URL loaded on launch and after connection failures.                                                                |
 | Allowed domains | *(empty, allow all)*              | Comma-separated list of domains the WebView may navigate to. Useful if your dashboard links to external pages you want to block. |
 | Hide status bar | On                                | Hides the clock, date, battery and Wi-Fi indicators over the dashboard. The idle screen always hides them.                       |
+| Prevent auto-lock | On                              | Keeps the iPad awake and unlocked while DashPad is open, overriding the system Auto-Lock setting.                                |
 | Favourites      | *(empty)*                         | Saved URL list. Swipe right on any entry to set it as the Home URL; swipe left to delete.                                        |
 
 

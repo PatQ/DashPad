@@ -160,6 +160,8 @@ Biometric recovery is available via `recoverWithBiometrics()`, which uses `LACon
 
 `transitionDisplay(to:)` is the single place where `displayState` changes. It applies a SwiftUI animation and sets `UIScreen` brightness via the active `UIWindowScene`. Active and idle brightness values are read from `AppSettings` at transition time.
 
+The system Auto-Lock is kept out of the way separately: `ContentView` sets `UIApplication.shared.isIdleTimerDisabled` from `AppSettings.preventAutoLock` (on by default) on appear, whenever the setting changes, and again on every `didBecomeActive`. Without it the iPad would sleep and lock after the Auto-Lock interval regardless of presence or schedule; dimming on idle is DashPad's job, not the system's.
+
 ---
 
 ## KioskBrowserView in detail
