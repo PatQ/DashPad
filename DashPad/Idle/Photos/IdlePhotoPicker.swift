@@ -10,46 +10,56 @@ import UniformTypeIdentifiers
 
 // MARK: - Grid
 
-/// The chosen photos as thumbnails, with an add tile at the end. Long-press a photo to remove it.
+/// The chosen photos as thumbnails, with an add tile at the end. Select switches to a selection
+/// mode for removing one or more photos. A per-photo context menu can't do this: inside a Form row
+/// it lifts the whole grid, and the row only keeps the first photo's menu.
 struct IdlePhotoGrid: View {
     @EnvironmentObject private var settings: AppSettings
     var thumbnailSize: CGFloat = 84
 
     @State private var showingPicker = false
     @State private var isImporting = false
+    @State private var isSelecting = false
+    @State private var selection: Set<IdlePhoto> = []
 
     var body: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: thumbnailSize, maximum: thumbnailSize * 1.5), spacing: 8)],
-            alignment: .leading,
-            spacing: 8
-        ) {
-            ForEach(settings.idlePhotos) { photo in
-                IdlePhotoThumbnail(photo: photo)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            withAnimation { settings.removeIdlePhoto(photo) }
-                        } label: {
-                            Label("Remove", systemImage: "trash")
-                        }
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            if !settings.idlePhotos.isEmpty {
+                header
             }
 
-            if isImporting {
-                tile { ProgressView() }
-                    .accessibilityLabel("Adding photos")
-            } else if settings.remainingIdlePhotoSlots > 0 {
-                Button { showingPicker = true } label: {
-                    tile {
-                        VStack(spacing: 4) {
-                            Image(systemName: "plus").font(.title3.weight(.medium))
-                            Text("Add").font(.caption.weight(.medium))
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: thumbnailSize, maximum: thumbnailSize * 1.5), spacing: 8)],
+                alignment: .leading,
+                spacing: 8
+            ) {
+                ForEach(settings.idlePhotos) { photo in
+                    if isSelecting {
+                        Button { toggleSelection(photo) } label: {
+                            IdlePhotoThumbnail(photo: photo, isSelected: selection.contains(photo))
                         }
-                        .foregroundStyle(Color.accentColor)
+                        .buttonStyle(.plain)
+                    } else {
+                        IdlePhotoThumbnail(photo: photo)
                     }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Add Photos")
+
+                if isImporting {
+                    tile { ProgressView() }
+                        .accessibilityLabel("Adding photos")
+                } else if !isSelecting, settings.remainingIdlePhotoSlots > 0 {
+                    Button { showingPicker = true } label: {
+                        tile {
+                            VStack(spacing: 4) {
+                                Image(systemName: "plus").font(.title3.weight(.medium))
+                                Text("Add").font(.caption.weight(.medium))
+                            }
+                            .foregroundStyle(Color.accentColor)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Add Photos")
+                }
             }
         }
         .sheet(isPresented: $showingPicker) {
@@ -63,6 +73,56 @@ struct IdlePhotoGrid: View {
             }
             .ignoresSafeArea()
         }
+        .onChangeCompat(of: settings.idlePhotos) { photos in
+            // Photos can also go via Remove All Photos; drop them from the selection too.
+            selection.formIntersection(photos)
+            if photos.isEmpty { isSelecting = false }
+        }
+    }
+
+    /// Borderless buttons, because a plain Button in a Form row makes the whole row its tap target.
+    private var header: some View {
+        HStack {
+            Text(headerTitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            if isSelecting {
+                Button("Remove", role: .destructive) {
+                    let removed = selection
+                    withAnimation {
+                        settings.removeIdlePhotos(removed)
+                        selection = []
+                        isSelecting = false
+                    }
+                }
+                .disabled(selection.isEmpty)
+                .padding(.trailing, 12)
+            }
+            Button(isSelecting ? "Done" : "Select") {
+                withAnimation {
+                    isSelecting.toggle()
+                    selection = []
+                }
+            }
+        }
+        .buttonStyle(.borderless)
+    }
+
+    private var headerTitle: String {
+        if isSelecting {
+            return selection.isEmpty ? "Select Photos" : "\(selection.count) Selected"
+        }
+        let count = settings.idlePhotos.count
+        return count == 1 ? "1 Photo" : "\(count) Photos"
+    }
+
+    private func toggleSelection(_ photo: IdlePhoto) {
+        if selection.contains(photo) {
+            selection.remove(photo)
+        } else {
+            selection.insert(photo)
+        }
     }
 
     private func tile<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -75,6 +135,8 @@ struct IdlePhotoGrid: View {
 
 private struct IdlePhotoThumbnail: View {
     let photo: IdlePhoto
+    /// nil outside selection mode, so no checkmark is drawn.
+    var isSelected: Bool?
     @State private var image: UIImage?
 
     var body: some View {
@@ -89,8 +151,20 @@ private struct IdlePhotoThumbnail: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(alignment: .bottomTrailing) {
+                if let isSelected {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, isSelected ? Color.accentColor : .clear)
+                        .shadow(color: .black.opacity(0.35), radius: 2)
+                        .padding(6)
+                }
+            }
+            .opacity(isSelected == false ? 0.75 : 1)
             .accessibilityElement()
             .accessibilityLabel("Photo")
+            .accessibilityAddTraits(isSelected == true ? .isSelected : [])
             .task(id: photo) {
                 let photo = photo
                 image = await Task.detached(priority: .userInitiated) {

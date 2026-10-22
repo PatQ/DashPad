@@ -69,9 +69,9 @@ extension AppSettings {
         photos.dropFirst(room).forEach(IdlePhotoStore.delete)
     }
 
-    func removeIdlePhoto(_ photo: IdlePhoto) {
-        idlePhotos.removeAll { $0 == photo }
-        IdlePhotoStore.delete(photo)
+    func removeIdlePhotos(_ photos: Set<IdlePhoto>) {
+        idlePhotos.removeAll { photos.contains($0) }
+        photos.forEach(IdlePhotoStore.delete)
     }
 
     func removeAllIdlePhotos() {
