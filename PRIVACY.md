@@ -12,7 +12,7 @@ DashPad uses the front-facing camera to detect whether someone is standing in fr
 When the ambient light in the frame is below the configured threshold (default: luminance value 20), the app skips detection entirely and the camera is not activated for that sample. This reduces the total number of hours per day that the camera is in use.
 
 **What the camera does not do.**
-- No photos are captured or saved.
+- The camera never captures or saves photos.
 - No video is recorded.
 - No frame is ever transmitted off the device.
 - No third-party SDK is involved in camera processing.
@@ -22,13 +22,13 @@ When the ambient light in the frame is below the configured threshold (default: 
 
 ## Settings and Configuration
 
-All settings are stored in `UserDefaults` on the device. No settings are synced to iCloud or backed up to any cloud service.
+All settings are stored in `UserDefaults` on the device. DashPad does not sync them to iCloud or send them anywhere. Like most app data, they are included in the iPad's own iCloud or computer backup when backups are turned on. Photos are the exception: they are excluded from backups (see Photos).
 
 ---
 
 ## Photos
 
-If you choose the Photos idle screen, you pick photos with the system photo picker. The picker runs outside DashPad and hands over only the photos you select, so DashPad does not ask for access to your photo library and cannot see the rest of it. The selected photos are copied into DashPad's own storage on the iPad, reduced to screen size, and are excluded from device backups. They are never uploaded or transmitted. Removing a photo in Settings deletes DashPad's copy; the original in your library is untouched.
+If you choose the Photos idle screen, you pick photos with the system photo picker. The picker runs outside DashPad and hands over only the photos you select, so DashPad does not ask for access to your photo library and cannot see the rest of it. Each selected photo is copied into DashPad's own storage on the iPad, reduced to screen size and re-encoded; the original's metadata, such as location, is not copied. DashPad's copies are excluded from iCloud and computer backups. They are never uploaded or transmitted. Removing a photo in Settings deletes DashPad's copy; the original in your library is untouched.
 
 ---
 
@@ -52,7 +52,7 @@ None. DashPad contains no crash reporting SDK, no usage tracking, and no third-p
 
 ## Third-Party SDKs
 
-None. DashPad uses only Apple system frameworks: SwiftUI, AVFoundation, Vision, WebKit, and LocalAuthentication. There are no CocoaPods, Swift Package Manager, or Carthage dependencies.
+None. DashPad uses only Apple system frameworks: SwiftUI, AVFoundation, Vision, WebKit, LocalAuthentication, PhotosUI, ImageIO, Core Image, and TipKit. TipKit shows an in-app tip and remembers on the device whether it has been dismissed; nothing is transmitted. There are no CocoaPods, Swift Package Manager, or Carthage dependencies.
 
 ---
 

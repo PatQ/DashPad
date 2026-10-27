@@ -26,7 +26,7 @@ nonisolated enum IdlePhotoStore {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         var url = base.appendingPathComponent("IdlePhotos", isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        // PRIVACY.md promises nothing is backed up to a cloud service; personal photos least of all.
+        // PRIVACY.md promises personal photos are excluded from iCloud and computer backups.
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? url.setResourceValues(values)
