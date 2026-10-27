@@ -45,6 +45,17 @@ extension View {
         }
     }
 
+    /// Draws a list row's badge as a filled capsule rather than plain secondary text.
+    /// `badgeProminence(_:)` is iOS 17+; earlier releases keep the standard text badge.
+    @ViewBuilder
+    func increasedBadgeProminence() -> some View {
+        if #available(iOS 17.0, *) {
+            badgeProminence(.increased)
+        } else {
+            self
+        }
+    }
+
     /// `onChange(of:)` without the old value, which no call site in this app needs.
     /// The two-parameter closure is iOS 17+; the single-parameter `perform:` overload it
     /// replaced is deprecated there, so each is used only on the release that prefers it.

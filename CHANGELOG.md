@@ -27,6 +27,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   over a blurred copy, drift slowly to avoid burn-in, and can show a clock in the corner. Up to
   50 photos, copied into DashPad at screen size and excluded from backups. Also offered in
   onboarding.
+- Users updating from an earlier version see a "New" badge on Idle Screen in the Settings sidebar
+  for two weeks after the update, or until they pick a clock face or Photos, and a tip at the top of that pane introducing the new clock faces and
+  Photos (iOS 17+). The tip goes away once dismissed, or once a clock face is picked or Photos
+  is selected. Fresh installs see neither, since onboarding already covers both.
 
 - Clock time format: choose System, 12-hour or 24-hour for every clock face that shows the hour
   in digits. System follows the iPad's Date & Time setting, as before.

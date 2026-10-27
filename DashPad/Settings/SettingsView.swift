@@ -7,6 +7,7 @@
 import AVFoundation
 import Combine
 import SwiftUI
+import TipKit
 
 // MARK: - Category
 
@@ -107,6 +108,7 @@ struct SettingsView: View {
     @State private var addWindowRequest: AddWindowRequest? = nil
     @State private var showingSetupAssistant = false
     @State private var confirmingRemoveAllPhotos = false
+    @AppStorage(WhatsNew.idleScreensTriedKey) private var idleScreensTried = false
 
     var body: some View {
         splitView
@@ -169,6 +171,14 @@ struct SettingsView: View {
         } icon: {
             SidebarIcon(category: cat)
         }
+        .badge(showsNewBadge(cat) ? Text("New") : nil)
+        .increasedBadgeProminence()
+    }
+
+    /// Flags a category that gained something since the user first set DashPad up, for a while
+    /// after the update or until they try it.
+    private func showsNewBadge(_ cat: SettingsCategory) -> Bool {
+        cat == .idleScreen && !idleScreensTried && WhatsNew.idleScreensBadgeIsCurrent
     }
 
     @ViewBuilder
@@ -207,6 +217,20 @@ struct SettingsView: View {
                             SidebarIcon(systemImage: "wand.and.stars", tint: .secondary)
                         }
                     }
+                    #if DEBUG
+                    sidebarFooterButton(action: { WhatsNew.resetForTesting() }) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Reset What's New")
+                                Text("Debug builds only. Takes effect on relaunch")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            SidebarIcon(systemImage: "arrow.counterclockwise", tint: .secondary)
+                        }
+                    }
+                    #endif
                 }
                 .padding(.bottom, 8)
             }
@@ -625,6 +649,8 @@ struct SettingsView: View {
     @ViewBuilder
     private func idleScreenDetail(_ s: EnvironmentObject<AppSettings>.Wrapper) -> some View {
         Form {
+            IdleScreensTipSection()
+
             Section {
                 IdleOptionRow(label: "Clock",
                               isSelected: settings.idleScreenType == .clock) {
@@ -714,6 +740,10 @@ struct SettingsView: View {
         .animation(.default, value: settings.idleScreenType)
         .animation(.default, value: settings.clockStyle)
         .animation(.default, value: settings.idlePhotos.count > 1)
+        .onChangeCompat(of: settings.clockStyle) { _ in invalidateIdleScreensTip() }
+        .onChangeCompat(of: settings.idleScreenType) { type in
+            if type == .photos { invalidateIdleScreensTip() }
+        }
         .confirmationDialog("Remove all photos from the idle screen?",
                             isPresented: $confirmingRemoveAllPhotos,
                             titleVisibility: .visible) {
@@ -725,6 +755,14 @@ struct SettingsView: View {
         .clearNavigationBackground()
         .navigationTitle("Idle Screen")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// The user has found the new idle screens, so the tip and badge pointing at them have done their job.
+    private func invalidateIdleScreensTip() {
+        idleScreensTried = true
+        if #available(iOS 17.0, *) {
+            IdleScreensTip().invalidate(reason: .actionPerformed)
+        }
     }
 
     /// Theme, typeface and the options that apply to the selected themed face. The classic
@@ -1012,6 +1050,22 @@ private struct IdleOptionRow: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - What's new tip
+
+/// `IdleScreensTip` as the first row of the Idle Screen form. TipKit is iOS 17+; earlier
+/// releases get nothing here, and the sidebar badge alone points them at the new screens.
+private struct IdleScreensTipSection: View {
+    var body: some View {
+        if #available(iOS 17.0, *) {
+            Section {
+                TipView(IdleScreensTip())
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+        }
     }
 }
 

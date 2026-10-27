@@ -11,6 +11,10 @@ struct DashPadApp: App {
     @StateObject private var settings = AppSettings()
     @StateObject private var kioskManager = KioskManager()
 
+    init() {
+        WhatsNew.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
